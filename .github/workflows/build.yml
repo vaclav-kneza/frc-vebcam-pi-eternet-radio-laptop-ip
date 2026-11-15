@@ -1,0 +1,48 @@
+
+name: Build ChobotCam OS SD image
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential git wget curl unzip rsync \
+            bc bison flex file cpio python3 \
+            libncurses-dev libssl-dev
+
+      - name: Download Buildroot
+        run: |
+          wget -q https://buildroot.org/downloads/buildroot-2025.02.10.tar.gz
+          tar -xf buildroot-2025.02.10.tar.gz
+
+      - name: Build ChobotCam OS
+        run: |
+          cd buildroot-2025.02.10
+          make raspberrypi3_defconfig
+          make BR2_EXTERNAL="$GITHUB_WORKSPACE/ChobotCamOS" olddefconfig
+          make -j2
+
+      - name: Collect SD image
+        run: |
+          mkdir -p artifacts
+          cp buildroot-2025.02.10/output/images/sdcard.img \
+            artifacts/ChobotCamOS_FRC9585.img
+          xz -T2 -6 artifacts/ChobotCamOS_FRC9585.img
+
+      - name: Upload SD image
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChobotCamOS_FRC9585
+          path: artifacts/*.img.xz
+          retention-days: 7
