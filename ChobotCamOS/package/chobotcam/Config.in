@@ -1,0 +1,5 @@
+config BR2_PACKAGE_CHOBOTCAM
+    bool "ChobotCam native V4L2 streaming daemon"
+    depends on BR2_TOOLCHAIN_HAS_THREADS
+    help
+      Two UVC MJPEG cameras with one GPIO-selected HTTP stream.

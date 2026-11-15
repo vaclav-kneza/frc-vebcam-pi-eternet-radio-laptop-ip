@@ -1,0 +1,26 @@
+#!/bin/sh
+case "$1" in
+ start)
+  echo "Starting ChobotCam..."
+  mkdir -p /boot
+  mountpoint -q /boot || mount -t vfat -o ro /dev/mmcblk0p1 /boot 2>/dev/null || true
+  if [ -r /boot/chobot.cfg ]; then
+   . /boot/chobot.cfg
+  fi
+  : "${CHOBOT_IP:=10.95.85.11}"
+  : "${CHOBOT_PREFIX:=24}"
+  : "${CHOBOT_FPS:=20}"
+  : "${CHOBOT_CAM0:=/dev/video0}"
+  : "${CHOBOT_CAM1:=/dev/video2}"
+  ip link set eth0 up
+  ip addr flush dev eth0
+  ip addr add "${CHOBOT_IP}/${CHOBOT_PREFIX}" dev eth0
+  /usr/bin/chobotcam "$CHOBOT_CAM0" "$CHOBOT_CAM1" "$CHOBOT_FPS" >/var/log/chobotcam.log 2>&1 &
+  echo $! >/var/run/chobotcam.pid
+  ;;
+ stop)
+  [ -f /var/run/chobotcam.pid ] && kill "$(cat /var/run/chobotcam.pid)" 2>/dev/null || true
+  ;;
+ restart) "$0" stop; sleep 1; "$0" start ;;
+ *) echo "Usage: $0 {start|stop|restart}"; exit 1 ;;
+esac
